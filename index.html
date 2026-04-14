@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Impostor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Förhindra markering av text av misstag vid snabba tryck på mobilen */
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center font-sans no-select">
+
+    <div id="app-container" class="w-full max-w-md p-6 bg-slate-800 rounded-2xl shadow-2xl mx-4 relative overflow-hidden">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500 tracking-wider">IMPOSTOR</h1>
+            <p class="text-slate-400 text-sm mt-2">Hitta bedragaren bland er</p>
+        </div>
+
+        <!-- VIEW: Setup -->
+        <div id="view-setup" class="fade-in block">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Kategori</label>
+                    <select id="input-category" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="djur">Djur</option>
+                        <option value="lander">Länder</option>
+                        <option value="stader">Städer</option>
+                        <option value="mat">Mat & Dryck</option>
+                        <option value="yrken">Yrken</option>
+                    </select>
+                </div>
+
+                <div class="flex space-x-4">
+                    <div class="w-1/2">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Antal spelare</label>
+                        <input type="number" id="input-players" value="4" min="3" max="20" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-center text-lg">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Antal impostors</label>
+                        <input type="number" id="input-impostors" value="1" min="1" max="10" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-center text-lg">
+                    </div>
+                </div>
+
+                <div id="error-message" class="text-red-400 text-sm text-center hidden bg-red-900/30 p-2 rounded">
+                    <!-- Error text will appear here -->
+                </div>
+
+                <button onclick="startGame()" class="w-full mt-6 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg">
+                    Starta Spelet
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW: Pass Phone -->
+        <div id="view-pass" class="fade-in hidden text-center py-8">
+            <h2 class="text-2xl font-bold mb-4">Skicka mobilen till</h2>
+            <div class="text-5xl font-black text-indigo-400 mb-8" id="player-turn-display">Spelare 1</div>
+            <p class="text-slate-400 mb-8">Se till att ingen annan tittar på skärmen innan du visar din roll!</p>
+            
+            <button onclick="showRole()" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg mb-6">
+                Visa min roll
+            </button>
+            
+            <button onclick="resetGame()" class="text-slate-500 hover:text-slate-300 text-sm font-medium underline">
+                Avbryt spelet
+            </button>
+        </div>
+
+        <!-- VIEW: Show Role -->
+        <div id="view-role" class="fade-in hidden text-center py-8">
+            <h2 class="text-lg text-slate-400 mb-2">Spelare <span id="current-player-number">1</span></h2>
+            
+            <div id="role-content" class="bg-slate-700/50 p-8 rounded-2xl border-2 border-slate-600 mb-8 min-h-[200px] flex flex-col justify-center items-center">
+                <!-- Dynamiskt innehåll hamnar här -->
+            </div>
+
+            <button onclick="hideRoleAndContinue()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg mb-6">
+                Dölj och fortsätt
+            </button>
+
+            <button onclick="resetGame()" class="text-slate-500 hover:text-slate-300 text-sm font-medium underline">
+                Avbryt spelet
+            </button>
+        </div>
+
+        <!-- VIEW: Gameplay -->
+        <div id="view-play" class="fade-in hidden text-center py-8">
+            <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h2 class="text-3xl font-bold mb-4">Dags att spela!</h2>
+            <p class="text-slate-300 mb-8">Alla har sett sina roller. Ställ en fråga om det hemliga ordet till varandra i tur och ordning. Bedragaren försöker gissa ordet utan att avslöja sig!</p>
+            
+            <button onclick="resetGame()" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg">
+                Ny runda
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Databas med ord för olika kategorier (Nu utökad med 30+ extra ord per kategori)
+        const wordsDatabase = {
+            djur: [
+                'Lejon', 'Elefant', 'Giraff', 'Hund', 'Katt', 'Delfin', 'Örn', 'Tiger', 'Björn', 'Varg', 
+                'Känguru', 'Pingvin', 'Noshörning', 'Flodhäst', 'Krokodil', 'Häst', 'Ko', 'Gris', 'Får', 'Get', 
+                'Kanin', 'Hamster', 'Marsvin', 'Papegoja', 'Kråka', 'Uggla', 'Haj', 'Val', 'Bläckfisk', 'Sjöstjärna', 
+                'Snigel', 'Mask', 'Myra', 'Bi', 'Fjäril', 'Spindel', 'Orm', 'Ödla', 'Groda', 'Padda', 
+                'Älg', 'Rådjur', 'Räv', 'Grävling', 'Igelkott', 'Ekorre', 'Bäver', 'Säl', 'Kamel', 'Zebra'
+            ],
+            lander: [
+                'Sverige', 'Norge', 'Finland', 'Danmark', 'Japan', 'Brasilien', 'Kanada', 'Italien', 'Australien', 'Mexiko', 
+                'Tyskland', 'Frankrike', 'Spanien', 'Indien', 'Egypten', 'USA', 'Kina', 'Ryssland', 'Storbritannien', 'Schweiz', 
+                'Österrike', 'Belgien', 'Nederländerna', 'Grekland', 'Turkiet', 'Sydafrika', 'Argentina', 'Chile', 'Peru', 'Colombia', 
+                'Thailand', 'Vietnam', 'Sydkorea', 'Nya Zeeland', 'Island', 'Irland', 'Polen', 'Tjeckien', 'Ungern', 'Kroatien', 
+                'Portugal', 'Marocko', 'Kenya', 'Nigeria', 'Filippinerna'
+            ],
+            stader: [
+                'Stockholm', 'Göteborg', 'New York', 'Tokyo', 'Paris', 'London', 'Berlin', 'Rom', 'Peking', 'Sydney', 
+                'Los Angeles', 'Barcelona', 'Dubai', 'Moskva', 'Oslo', 'Malmö', 'Uppsala', 'Köpenhamn', 'Helsingfors', 'Amsterdam', 
+                'Bryssel', 'Wien', 'Prag', 'Budapest', 'Lissabon', 'Aten', 'Istanbul', 'San Francisco', 'Chicago', 'Miami', 
+                'Toronto', 'Vancouver', 'Buenos Aires', 'Rio de Janeiro', 'São Paulo', 'Kapstaden', 'Seoul', 'Bangkok', 'Singapore', 
+                'Hongkong', 'Shanghai', 'Mumbai', 'New Delhi', 'Kairo', 'Marrakech', 'Warszawa'
+            ],
+            mat: [
+                'Pizza', 'Sushi', 'Tacos', 'Pannkakor', 'Hamburgare', 'Spaghetti', 'Kebab', 'Sallad', 'Soppa', 'Lasagne', 
+                'Smörgåstårta', 'Köttbullar', 'Paella', 'Curry', 'Ramen', 'Kebabtallrik', 'Falafel', 'Köttfärssås', 'Risotto', 'Biff', 
+                'Korv med bröd', 'Våfflor', 'Raggmunk', 'Pirog', 'Omelett', 'Moussaka', 'Tapas', 'Chili con carne', 'Burrito', 'Enchilada', 
+                'Quesadilla', 'Nachos', 'Fish and chips', 'Dumplings', 'Nudlar', 'Kycklingwok', 'Grillad kyckling', 'Stekt ris', 'Räkcocktail', 
+                'Kaviar', 'Kroppkakor', 'Palt', 'Blodpudding', 'Ärtsoppa', 'Grekisk sallad'
+            ],
+            yrken: [
+                'Läkare', 'Polis', 'Lärare', 'Brandman', 'Pilot', 'Sjuksköterska', 'Advokat', 'Programmerare', 'Kock', 'Astronaut', 
+                'Snickare', 'Frisör', 'Skådespelare', 'Författare', 'Musiker', 'Ingenjör', 'Arkitekt', 'Designer', 'Mekaniker', 'Elektriker', 
+                'Rörmokare', 'Lokalvårdare', 'Säljare', 'Kassörska', 'Revisor', 'Ekonom', 'Jurist', 'Domare', 'Politiker', 'Journalist', 
+                'Fotograf', 'Konstnär', 'Bagare', 'Konditor', 'Slaktare', 'Bonde', 'Trädgårdsmästare', 'Veterinär', 'Tandläkare', 'Psykolog', 
+                'Terapeut', 'Präst', 'Personlig tränare', 'Busschaufför', 'Taxiförare', 'Flygvärdinna'
+            ]
+        };
+
+        // Spelstatus
+        let gameState = {
+            players: 0,
+            impostors: 0,
+            category: '',
+            secretWord: '',
+            roles: [], // Array som håller 'vanlig' eller 'impostor'
+            currentPlayerIndex: 0
+        };
+
+        // Vy-hantering
+        function showView(viewId) {
+            document.getElementById('view-setup').classList.add('hidden');
+            document.getElementById('view-pass').classList.add('hidden');
+            document.getElementById('view-role').classList.add('hidden');
+            document.getElementById('view-play').classList.add('hidden');
+            
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        function showError(msg) {
+            const errDiv = document.getElementById('error-message');
+            if (msg) {
+                errDiv.textContent = msg;
+                errDiv.classList.remove('hidden');
+            } else {
+                errDiv.classList.add('hidden');
+            }
+        }
+
+        // Fisher-Yates shuffle för att blanda roller
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Starta spelet logik
+        function startGame() {
+            showError(''); // Rensa tidigare fel
+
+            const numPlayers = parseInt(document.getElementById('input-players').value);
+            const numImpostors = parseInt(document.getElementById('input-impostors').value);
+            const category = document.getElementById('input-category').value;
+
+            // Validering
+            if (isNaN(numPlayers) || numPlayers < 3) {
+                showError('Du behöver minst 3 spelare.');
+                return;
+            }
+            if (isNaN(numImpostors) || numImpostors < 1) {
+                showError('Det måste finnas minst 1 impostor.');
+                return;
+            }
+            if (numImpostors >= numPlayers) {
+                showError('Antalet impostors måste vara färre än antalet spelare.');
+                return;
+            }
+
+            // Slumpa ord
+            const categoryWords = wordsDatabase[category];
+            const randomWord = categoryWords[Math.floor(Math.random() * categoryWords.length)];
+
+            // Skapa roller
+            let roles = Array(numPlayers).fill('vanlig');
+            for (let i = 0; i < numImpostors; i++) {
+                roles[i] = 'impostor';
+            }
+            shuffleArray(roles);
+
+            // Spara status
+            gameState = {
+                players: numPlayers,
+                impostors: numImpostors,
+                category: category,
+                secretWord: randomWord,
+                roles: roles,
+                currentPlayerIndex: 0
+            };
+
+            setupNextPlayer();
+        }
+
+        // Förbered skärmen för nästa spelare att ta emot mobilen
+        function setupNextPlayer() {
+            if (gameState.currentPlayerIndex >= gameState.players) {
+                // Alla har sett sina roller
+                showView('view-play');
+                return;
+            }
+
+            document.getElementById('player-turn-display').textContent = 'Spelare ' + (gameState.currentPlayerIndex + 1);
+            showView('view-pass');
+        }
+
+        // Visa rollen för den aktuella spelaren
+        function showRole() {
+            const role = gameState.roles[gameState.currentPlayerIndex];
+            const roleContentDiv = document.getElementById('role-content');
+            document.getElementById('current-player-number').textContent = gameState.currentPlayerIndex + 1;
+
+            if (role === 'impostor') {
+                roleContentDiv.className = 'bg-red-900/20 p-8 rounded-2xl border-2 border-red-500/50 mb-8 min-h-[200px] flex flex-col justify-center items-center text-center';
+                roleContentDiv.innerHTML = `
+                    <div class="text-red-400 font-bold tracking-widest uppercase text-sm mb-2">Din roll är...</div>
+                    <div class="text-4xl font-black text-red-500 mb-4 drop-shadow-md">IMPOSTOR</div>
+                    <p class="text-red-200/80 text-sm">Du känner inte till ordet. Låtsas som att du gör det och försök lista ut det!</p>
+                `;
+            } else {
+                roleContentDiv.className = 'bg-emerald-900/20 p-8 rounded-2xl border-2 border-emerald-500/50 mb-8 min-h-[200px] flex flex-col justify-center items-center text-center';
+                
+                // Formatera kategorinamnet lite snyggare
+                const sel = document.getElementById('input-category');
+                const catName = sel.options[sel.selectedIndex].text;
+
+                roleContentDiv.innerHTML = `
+                    <div class="text-emerald-400 font-bold tracking-widest uppercase text-sm mb-2">Hemligt ord</div>
+                    <div class="text-4xl font-black text-emerald-400 mb-2 drop-shadow-md">${gameState.secretWord}</div>
+                    <p class="text-emerald-200/80 text-sm mt-4">Kategori: <span class="font-bold">${catName}</span></p>
+                    <p class="text-emerald-200/60 text-xs mt-2">Avslöja inte ordet, men visa att du känner till det!</p>
+                `;
+            }
+
+            showView('view-role');
+        }
+
+        // Göm rollen och gå till nästa person
+        function hideRoleAndContinue() {
+            gameState.currentPlayerIndex++;
+            setupNextPlayer();
+        }
+
+        // Återställ till inställningsskärmen (används också för att avbryta)
+        function resetGame() {
+            showView('view-setup');
+        }
+    </script>
+</body>
+</html>
